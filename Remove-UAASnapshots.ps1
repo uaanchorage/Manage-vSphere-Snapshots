@@ -10,11 +10,15 @@ Function Get-UAASnapshots {
         [Parameter(Mandatory=$false, Position=0, ParameterSetName="default")]
         [string]$Datacenter,
         
-        [Parameter(Mandatory=$true, Position=0, ParameterSetName="Specific")]
-        [string[]]$Name,
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName="Specific VM")]
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName="Specific Snapshot")]
+        [string[]]$VirtualMachine,
+
+        [Parameter(Mandatory=$true, Position=1, ParameterSetName="Specific Snapshot")]
+        [string]$Name,
 
         [Parameter(Mandatory=$false, Position=1, ParameterSetName="default")]
-        [Parameter(Mandatory=$false, Position=1, ParameterSetName="Specific")]
+        [Parameter(Mandatory=$false, Position=1, ParameterSetName="Specific VM")]
         [int]$OlderThan = 0
     )
 
@@ -22,10 +26,16 @@ Function Get-UAASnapshots {
 
     switch ($PSCmdlet.ParameterSetName)
     {
-        "Specific"
+        "Specific VM"
         {
-            Write-Debug "Processing VM: $Name"
-            $Snapshots = Get-VM -Name $Name | Get-Snapshot | Where-Object {$_.Created -lt (Get-Date).AddDays(-$OlderThan)}
+            Write-Debug "Processing VM: $VirtualMachine"
+            $Snapshots = Get-VM -Name $VirtualMachine | Get-Snapshot | Where-Object {$_.Created -lt (Get-Date).AddDays(-$OlderThan)}
+        }
+
+        "Specific Snapshot"
+        {
+            Write-Debug "Processing Snapshot: $Name"
+            $Snapshots = Get-Snapshot -VM $VirtualMachine -Name $Name | Where-Object {$_.Created -lt (Get-Date).AddDays(-$OlderThan)}
         }
 
         default
@@ -55,12 +65,12 @@ Function Get-UAASnapshots {
 
     .INPUTS
 
-    None. You cannot pipe objects to Add-Extension.
+    None. You cannot pipe objects to Get-UAASnapshots.
 
     .OUTPUTS
 
-    System.Array. Get-UAASnapshots returns an array of objects containing
-    the results of the function.
+    VMware.VimAutomation.ViCore.Impl.V1.VM.SnapshotImpl. Get-UAASnapshots returns a custom
+    VMware object containing the results of the function.
 
     .EXAMPLE
 
@@ -84,9 +94,6 @@ Function Get-UAASnapshots {
 
     https://github.com/uaanchorage/Manage-vSphere-Snapshots
 
-    .LINK
-
-    Set-Item
     #>
 }
 
@@ -98,9 +105,10 @@ Function Remove-UAASnapshots {
         [string]$Datacenter,
 
         [Parameter(Mandatory=$true, Position=0, ParameterSetName="Specific VM")]
-        [string]$VM,
-
         [Parameter(Mandatory=$true, Position=0, ParameterSetName="Specific Snapshot")]
+        [string]$VirtualMachine,
+
+        [Parameter(Mandatory=$true, Position=1, ParameterSetName="Specific Snapshot")]
         [string]$Name,
         
         [Parameter(Mandatory=$false, Position=1, ParameterSetName="default")]
@@ -122,34 +130,34 @@ Function Remove-UAASnapshots {
         {
             if ($RemoveChildren)
             {
-                $Snapshots = Get-UAASnapshots -Name $VM -OlderThan $OlderThan | Where-Object {$null -eq $_.Parent}
+                $Snapshots = Get-UAASnapshots -Name $VirtualMachine -OlderThan $OlderThan | Where-Object {$null -eq $_.Parent}
                 ForEach ($Snapshot in $Snapshots)
                 {
                     $RemovedObjectList = New-Object psobject
-                    $RemovedObjectList | Add-Member -MemberType NoteProperty -Name VM -Value $VM
+                    $RemovedObjectList | Add-Member -MemberType NoteProperty -Name VM -Value $VirtualMachine
                     $RemovedObjectList | Add-Member -MemberType NoteProperty -Name Name -Value $Snapshot.Name
                     $RemovedObjectList | Add-Member -MemberType NoteProperty -Name ChildSnapshots -Value $true
                     Write-Debug "VM Name: $($Snapshot.VM)"
                     Write-Debug "Snapshot Name: $($Snapshot.Name)"
                     Write-Debug "Child Snapshots: Yes"
-                    $Snapshot | Remove-Snapshot -RemoveChildren -Confirm:$false -RunAsync
+                    $Snapshot | Remove-Snapshot -RemoveChildren -Confirm:$false
 
                     $RemovedSnapshots += $RemovedObjectList
                 }
             }
             else
             {
-                $Snapshots = Get-UAASnapshots -Name $VM -OlderThan $OlderThan | Where-Object {$null -eq $_.Parent}
+                $Snapshots = Get-UAASnapshots -Name $VirtualMachine -OlderThan $OlderThan | Where-Object {$null -eq $_.Parent}
                 ForEach ($Snapshot in $Snapshots) 
                 {
                     $RemovedObjectList = New-Object psobject
-                    $RemovedObjectList | Add-Member -MemberType NoteProperty -Name VM -Value $VM
+                    $RemovedObjectList | Add-Member -MemberType NoteProperty -Name VM -Value $VirtualMachine
                     $RemovedObjectList | Add-Member -MemberType NoteProperty -Name Name -Value $Snapshot.Name
                     $RemovedObjectList | Add-Member -MemberType NoteProperty -Name ChildSnapshots -Value $false
                     Write-Debug "VM Name: $($Snapshot.VM)"
                     Write-Debug "Snapshot Name: $($Snapshot.Name)"
                     Write-Debug "Child Snapshots: No"
-                    $Snapshot | Remove-Snapshot -Confirm:$false -RunAsync
+                    $Snapshot | Remove-Snapshot -Confirm:$false
 
                     $RemovedSnapshots += $RemovedObjectList
                 }
@@ -158,7 +166,7 @@ Function Remove-UAASnapshots {
 
         "Specific Snapshot"
         {
-            $Snapshot = Get-UAASnapshot -Name $Name
+            $Snapshot = Get-UAASnapshots -VM $VirtualMachine -Name $Name
             $RemovedObjectList = New-Object psobject
             $RemovedObjectList | Add-Member -MemberType NoteProperty -Name VM -Value $Snapshot.VM
             $RemovedObjectList | Add-Member -MemberType NoteProperty -Name Name -Value $Snapshot.Name
@@ -166,7 +174,7 @@ Function Remove-UAASnapshots {
             Write-Debug "VM Name: $($Snapshot.VM)"
             Write-Debug "Snapshot Name: $($Snapshot.Name)"
             Write-Debug "Child Snapshots: No"
-            $Snapshot | Remove-Snapshot -Confirm:$false -RunAsync
+            $Snapshot | Remove-Snapshot -Confirm:$false
 
             $RemovedSnapshots += $RemovedObjectList
         }
@@ -186,7 +194,7 @@ Function Remove-UAASnapshots {
                     Write-Debug "VM Name: $($Snapshot.VM)"
                     Write-Debug "Snapshot Name: $($Snapshot.Name)"
                     Write-Debug "Child Snapshots: Yes"
-                    $Snapshot | Remove-Snapshot -RemoveChildren -Confirm:$false -RunAsync
+                    $Snapshot | Remove-Snapshot -RemoveChildren -Confirm:$false
 
                     $RemovedSnapshots += $RemovedObjectList
                 }
@@ -203,7 +211,7 @@ Function Remove-UAASnapshots {
                     Write-Debug "VM Name: $($Snapshot.VM)"
                     Write-Debug "Snapshot Name: $($Snapshot.Name)"
                     Write-Debug "Child Snapshots: No"
-                    $Snapshot | Remove-Snapshot -Confirm:$false -RunAsync
+                    $Snapshot | Remove-Snapshot -Confirm:$false
 
                     $RemovedSnapshots += $RemovedObjectList
                 }
@@ -220,7 +228,7 @@ Function Remove-UAASnapshots {
                     Write-Debug "VM Name: $($Snapshot.VM)"
                     Write-Debug "Snapshot Name: $($Snapshot.Name)"
                     Write-Debug "Child Snapshots: Yes"
-                    $Snapshot | Remove-Snapshot -RemoveChildren -Confirm:$false -RunAsync
+                    $Snapshot | Remove-Snapshot -RemoveChildren -Confirm:$false
 
                     $RemovedSnapshots += $RemovedObjectList
                 }
@@ -237,7 +245,7 @@ Function Remove-UAASnapshots {
                     Write-Debug "VM Name: $($Snapshot.VM)"
                     Write-Debug "Snapshot Name: $($Snapshot.Name)"
                     Write-Debug "Child Snapshots: No"
-                    $Snapshot | Remove-Snapshot -Confirm:$false -RunAsync
+                    $Snapshot | Remove-Snapshot -Confirm:$false
 
                     $RemovedSnapshots += $RemovedObjectList
                 }
@@ -246,4 +254,45 @@ Function Remove-UAASnapshots {
     }
 
     Return $RemovedSnapshots
+
+    <#
+    .SYNOPSIS
+
+    Remove a list of existing snapshots from vCenter.
+
+    .DESCRIPTION
+
+    Returns a list of snapshots that were removed from vCenter. Results can be 
+    filtered by vSphere Datacenter, Days Old, VM Name, or Snapshot Name.
+
+    .INPUTS
+
+    None. You cannot pipe objects to Remove-UAASnapshots.
+
+    .OUTPUTS
+
+    System.Array. Get-UAASnapshots returns an array of objects containing
+    the results of the function.
+
+    .EXAMPLE
+
+    PS C:\Users\jmzetterman.UA\Documents\OneDrive Personal\OneDrive\UAAGit> Remove-UAASnapshots -VM AR-TEST -Name AR-TEST_vm-117097_1
+
+    Name                           State      % Complete Start Time   Finish Time
+    ----                           -----      ---------- ----------   -----------
+    RemoveSnapshot_Task            Completed         100 10:32:27 AM  10:32:40 AM
+
+    .EXAMPLE
+
+    PS> Remove-UAASnapshots -Name AR-TEST                           
+
+    VM      Name                Created
+    --      ----                -------
+    AR-TEST AR-TEST_vm-117097_1 5/21/2019 11:36:48 AM
+
+    .LINK
+
+    https://github.com/uaanchorage/Manage-vSphere-Snapshots
+
+    #>
 }
