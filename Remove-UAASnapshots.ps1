@@ -1,3 +1,8 @@
+<#
+    Created By: John Zetterman
+    Last Modified: 6/12/2019
+#>
+
 Function Get-UAASnapshots {
     [CmdletBinding(DefaultParameterSetName="default")]
 
@@ -46,7 +51,7 @@ Function Get-UAASnapshots {
     .DESCRIPTION
 
     Returns a list of snapshots from vCenter. Results can be filtered by 
-    vSphere Datacenter, Days Old, or Snapshot Name.
+    vSphere Datacenter, Days Old, or VM Name.
 
     .INPUTS
 
@@ -59,22 +64,25 @@ Function Get-UAASnapshots {
 
     .EXAMPLE
 
-    PS> Get-UAASnapshots -Datacenter 'Anchorage Datacenter' -OlderThan 2
-    File.txt
+    PS> Get-UAASnapshots -Datacenter 'Anchorage Datacenter' -OlderThan 2 | Select VM, Name, Created
+
+    VM                              Name                                             Created
+    --                              ----                                             -------
+    AR-TEST                         AR-TEST_vm-117097_1                              5/21/2019 11:36:48 AM
+    anc-licensing04                 VM Snapshot 1%252f4%252f2019, 10:15:38 AM        1/4/2019 10:15:54 AM 
+    Arctic                          Before License Manager                           6/5/2017 6:57:46 AM
 
     .EXAMPLE
 
-    PS> extension -name "File" -extension "doc"
-    File.doc
+    PS> Get-UAASnapshots -Name AR-TEST | Select VM, Name, Created                                  
 
-    .EXAMPLE
-
-    PS> extension "File" "doc"
-    File.doc
+    VM      Name                Created
+    --      ----                -------
+    AR-TEST AR-TEST_vm-117097_1 5/21/2019 11:36:48 AM
 
     .LINK
 
-    http://www.fabrikam.com/extension.html
+    https://github.com/uaanchorage/Manage-vSphere-Snapshots
 
     .LINK
 
