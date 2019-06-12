@@ -37,6 +37,49 @@ Function Get-UAASnapshots {
     }
 
     Return $Snapshots
+
+    <#
+    .SYNOPSIS
+
+    Gets a list of existing snapshots from vCenter.
+
+    .DESCRIPTION
+
+    Returns a list of snapshots from vCenter. Results can be filtered by 
+    vSphere Datacenter, Days Old, or Snapshot Name.
+
+    .INPUTS
+
+    None. You cannot pipe objects to Add-Extension.
+
+    .OUTPUTS
+
+    System.Array. Get-UAASnapshots returns an array of objects containing
+    the results of the function.
+
+    .EXAMPLE
+
+    PS> Get-UAASnapshots -Datacenter 'Anchorage Datacenter' -OlderThan 2
+    File.txt
+
+    .EXAMPLE
+
+    PS> extension -name "File" -extension "doc"
+    File.doc
+
+    .EXAMPLE
+
+    PS> extension "File" "doc"
+    File.doc
+
+    .LINK
+
+    http://www.fabrikam.com/extension.html
+
+    .LINK
+
+    Set-Item
+    #>
 }
 
 Function Remove-UAASnapshots {
