@@ -325,28 +325,3 @@ Function Remove-UAASnapshots {
 
     #>
 }
-
-Function Send-UAANotification {
-    Param
-    (
-        [Parameter(Mandatory=$true, Position=0)]
-        [string]$ToAddress,
-
-        [Parameter(Mandatory=$true, Position=1)]
-        [string]$FromAddress,
-
-        [Parameter(Mandatory=$true, Position=2)]
-        [string]$EmailSubject,
-        
-        [Parameter(Mandatory=$true, Position=3)]
-        [string]$EmailBody,
-        
-        [Parameter(Mandatory=$false, Position=4)]
-        [string]$SMTPServer,
-
-        [Parameter(Mandatory=$false, Position=4)]
-        [switch]$BodyAsHtml
-    )
-
-    Send-MailMessage -From $FromAddress -To $ToAddress -Subject $EmailSubject -Body $EmailBody -SmtpServer $SMTPServer
-}
