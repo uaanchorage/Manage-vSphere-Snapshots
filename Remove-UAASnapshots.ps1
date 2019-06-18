@@ -269,15 +269,15 @@ Function Remove-UAASnapshots {
     </STYLE>
 "@
 
-    $EmailBody = $RemovedSnapshots | ConvertTo-Html -Head $css -PreContent "Below is a summary of the snapshots that were removed from vCenter during script execution:<br /><br />" -PostContent "<br />File Name: $($MyInvocation.MyCommand). <br />Execution completed at $(Get-Date)" | Out-String
-
     if ($EmailNotification -and ($null -ne $RemovedSnapshots))
     {
+        $EmailBody = $RemovedSnapshots | ConvertTo-Html -Head $css -PreContent "Below is a summary of the snapshots that were removed from vCenter during script execution:<br /><br />" -PostContent "<br />File Name: $($MyInvocation.MyCommand). <br />Execution completed at $(Get-Date)" | Out-String
         Send-MailMessage -To 'jmzetterman@alaska.edu' -From 'NoReply@uaa.alaska.edu' -Subject 'vCenter Snapshot Removal Summary' -Body $EmailBody -BodyAsHtml -SmtpServer 'aspam-out.uaa.alaska.edu'
     }
     else
     {
-        Write-Host "Did not send notification." -ForegroundColor Red
+        $EmailBody = $RemovedSnapshots | ConvertTo-Html -PreContent "There were no snapshots detected.<br /><br />" -PostContent "<br />File Name: $($MyInvocation.MyCommand). <br />Execution completed at $(Get-Date)" | Out-String
+        Send-MailMessage -To 'jmzetterman@alaska.edu' -From 'NoReply@uaa.alaska.edu' -Subject 'vCenter Snapshot Removal Summary' -Body $EmailBody -BodyAsHtml -SmtpServer 'aspam-out.uaa.alaska.edu'
     }
 
 
