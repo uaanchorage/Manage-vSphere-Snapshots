@@ -119,7 +119,12 @@ Function Remove-UAASnapshots {
         
         [Parameter(Mandatory=$false, Position=2, ParameterSetName="default")]
         [Parameter(Mandatory=$false, Position=2, ParameterSetName="Specific VM")]
-        [switch]$RemoveChildren
+        [switch]$RemoveChildren,
+
+        [Parameter(Mandatory=$false, Position=3, ParameterSetName="default")]
+        [Parameter(Mandatory=$false, Position=3, ParameterSetName="Specific VM")]
+        [Parameter(Mandatory=$false, Position=3, ParameterSetName="Specific Snapshot")]
+        [switch]$EmailNotification
     )
 
     Write-Debug "Using ParameterSetName: $($PSCmdlet.ParameterSetName)"
@@ -255,6 +260,27 @@ Function Remove-UAASnapshots {
         }
     }
 
+    $css = @"
+    <STYLE>
+    TABLE {border-width: 1px;border-style: solid;border-color: black;border-collapse: collapse;} 
+    TH {border-width: 1px;padding: 3px;border-style: solid;border-color: black;background-color: #34495e; color:#ffffff;} 
+    TD {border-width: 1px;padding: 3px;border-style: solid;border-color: black;} 
+    TR:Nth-Child(Even) {Background-Color: #dddddd;}
+    </STYLE>
+"@
+
+    $EmailBody = $RemovedSnapshots | ConvertTo-Html -Head $css -PreContent "Below is a summary of the snapshots that were removed from vCenter during script execution:<br /><br />" -PostContent "<br />File Name: $($MyInvocation.MyCommand). <br />Execution completed at $(Get-Date)" | Out-String
+
+    if ($EmailNotification -and ($null -ne $RemovedSnapshots))
+    {
+        Send-MailMessage -To 'jmzetterman@alaska.edu' -From 'NoReply@uaa.alaska.edu' -Subject 'vCenter Snapshot Removal Summary' -Body $EmailBody -BodyAsHtml -SmtpServer 'aspam-out.uaa.alaska.edu'
+    }
+    else
+    {
+        Write-Host "Did not send notification." -ForegroundColor Red
+    }
+
+
     Return $RemovedSnapshots
 
     <#
@@ -298,4 +324,29 @@ Function Remove-UAASnapshots {
     https://github.com/uaanchorage/Manage-vSphere-Snapshots
 
     #>
+}
+
+Function Send-UAANotification {
+    Param
+    (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$ToAddress,
+
+        [Parameter(Mandatory=$true, Position=1)]
+        [string]$FromAddress,
+
+        [Parameter(Mandatory=$true, Position=2)]
+        [string]$EmailSubject,
+        
+        [Parameter(Mandatory=$true, Position=3)]
+        [string]$EmailBody,
+        
+        [Parameter(Mandatory=$false, Position=4)]
+        [string]$SMTPServer,
+
+        [Parameter(Mandatory=$false, Position=4)]
+        [switch]$BodyAsHtml
+    )
+
+    Send-MailMessage -From $FromAddress -To $ToAddress -Subject $EmailSubject -Body $EmailBody -SmtpServer $SMTPServer
 }
